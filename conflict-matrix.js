@@ -6,16 +6,14 @@ async function getOfferings(inputFilePath) {
     const readStream = fs
         .createReadStream(inputFilePath)
         .pipe(parse({ delimiter: ",", from_line: 2 }));
-  
     for await (const row of readStream) {
       offerings.push(row[2]);
-    }
-
-    return offerings
+    };
+    return offerings;
 };
 
-async function createEmptyMatrix() {
-    const conflictMatrix = {};
+async function createMatrix() {
+    const emptyMatrix = {};
     await getOfferings('imports/course-offerings.csv')
         .then(offerings => {
             for (a in offerings) {
@@ -28,26 +26,22 @@ async function createEmptyMatrix() {
             };
         }
     );
-
-    return conflictMatrix;
+    return emptyMatrix;
 };
 
 async function getStudents(inputFilePath, requestsByStudent) {
     const students = [];
-
     const readStream = fs
         .createReadStream(inputFilePath)
         .pipe(parse({ delimiter: ",", from_line: 2 }));
-  
     for await (const row of readStream) {
         if (!requestsByStudent[row[0]]) {
             students.push([row[0],row[1],row[2],row[3]]);
             requestsByStudent[row[0]] = new Set;
         };
         requestsByStudent[row[0]].add(row[9]);
-    }
-
-    return students
+    };
+    return students;
 };
 
 async function fillMatrix(conflictMatrix) {
@@ -64,7 +58,9 @@ async function fillMatrix(conflictMatrix) {
                 }
             }
         );
-    console.log('conflictMatrix ',conflictMatrix)
+    return conflictMatrix;
 };
 
-createEmptyMatrix().then(data => fillMatrix(data))
+createMatrix()
+    .then(emptyMatrix => fillMatrix(emptyMatrix))
+    .then(conflictMatrix => console.log(conflictMatrix))
