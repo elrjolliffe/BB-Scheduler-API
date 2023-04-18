@@ -1,0 +1,22 @@
+{
+  "name": "bb-scheduler-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "conflict-matrix.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elrjolliffe/BB-Scheduler-API.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/elrjolliffe/BB-Scheduler-API/issues"
+  },
+  "homepage": "https://github.com/elrjolliffe/BB-Scheduler-API#readme",
+  "dependencies": {
+    "csv": "^6.2.10"
+  }
+}
