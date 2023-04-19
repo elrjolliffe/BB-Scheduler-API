@@ -6,45 +6,52 @@ async function getOfferings(inputFilePath) {
     const readStream = fs
         .createReadStream(inputFilePath)
         .pipe(parse({ delimiter: ",", from_line: 2 }));
+  
     for await (const row of readStream) {
-      offerings.push(row[2]);
-    };
+      offerings.push([row[0],row[1],row[2]]);
+    }
     return offerings;
 };
 
 async function createMatrix() {
-    const emptyMatrix = {};
+    const emptyMatrix = new Map;
+    const courseRef = {};
     await getOfferings('imports/course-offerings.csv')
         .then(offerings => {
             for (a in offerings) {
-                courseA = offerings[a]
-                if (!conflictMatrix[courseA]) conflictMatrix[courseA] = {};
+                courseA = offerings[a][0]
+                if (!courseRef[courseA]) courseRef[courseA] = [offerings[a][1],offerings[a][2]]
+                if (!emptyMatrix.get(courseA)) emptyMatrix.set(courseA, new Map);
                 for (b in offerings) {
-                    courseB = offerings[b]
-                    if (!conflictMatrix[courseA][courseB]) conflictMatrix[courseA][courseB] = 0;
+                    courseB = offerings[b][0]
+                    if (!emptyMatrix.get(courseA).get(courseB)) emptyMatrix.get(courseA).set(courseB, 0);
                 }
             };
         }
     );
-    return emptyMatrix;
+    return [emptyMatrix, courseRef];
 };
 
 async function getStudents(inputFilePath, requestsByStudent) {
     const students = [];
+
     const readStream = fs
         .createReadStream(inputFilePath)
         .pipe(parse({ delimiter: ",", from_line: 2 }));
+  
     for await (const row of readStream) {
         if (!requestsByStudent[row[0]]) {
             students.push([row[0],row[1],row[2],row[3]]);
             requestsByStudent[row[0]] = new Set;
         };
-        requestsByStudent[row[0]].add(row[9]);
+        requestsByStudent[row[0]].add(row[7]);
     };
-    return students;
+    return students
 };
 
-async function fillMatrix(conflictMatrix) {
+async function fillMatrix(conflictMatrixCourseRef) {
+    const conflictMatrix = conflictMatrixCourseRef[0];
+    const courseRef = conflictMatrixCourseRef[1];
     const requestsByStudent = {};
     await getStudents('imports/schedule-requests.csv', requestsByStudent)
         .then(students => {
@@ -52,15 +59,49 @@ async function fillMatrix(conflictMatrix) {
                 const courseList = requestsByStudent[students[i][0]];
                 courseList.forEach((courseA) => {
                     courseList.forEach((courseB) => {
-                        conflictMatrix[courseA][courseB] = conflictMatrix[courseA][courseB] + 1;
+                        let count = conflictMatrix.get(courseA).get(courseB) + 1
+                        conflictMatrix.get(courseA).set(courseB, count);
                         })
                     })
                 }
             }
         );
-    return conflictMatrix;
+    return [conflictMatrix, courseRef];
 };
 
+function populateCSV(conflictMatrixCourseRef) {
+    const conflictMatrix = conflictMatrixCourseRef[0];
+    const courseRef = conflictMatrixCourseRef[1];
+
+    let csvText = '';
+    let rows = [];
+
+    const iterator = conflictMatrix[Symbol.iterator]();
+
+    const firstElem = iterator.next();
+    firstElem.value[1].forEach((value,key) => {
+        csvText += `,${courseRef[key][1]}`;
+        rows.push(`${courseRef[key][1]},`+(firstElem.value[0] == key ? `X` : `${value}`))
+    })
+    csvText += '\n';
+
+    let currElem = iterator.next();
+    while (currElem.value != undefined) {
+        let rowNum = 0;
+        currElem.value[1].forEach((value, key) => {
+            rows[rowNum] += currElem.value[0] == key ? `,X` : `,${value}`;
+            rowNum += 1;
+        })
+        currElem = iterator.next();
+    }
+
+    for (const row in rows) {
+        csvText += `${rows[row]}\n`
+    }
+
+    fs.writeFile( 'exports/conflict-matrix.csv', csvText, () => console.log('File Updated') )
+}
+
 createMatrix()
-    .then(emptyMatrix => fillMatrix(emptyMatrix))
-    .then(conflictMatrix => console.log(conflictMatrix))
+    .then(emptyMatrixCourseRef => fillMatrix(emptyMatrixCourseRef))
+    .then(conflictMatrixCourseRef => populateCSV(conflictMatrixCourseRef));
