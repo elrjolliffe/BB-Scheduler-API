@@ -14,24 +14,22 @@ async function getOfferings(inputFilePath) {
 };
 
 async function createMatrix() {
-    // const emptyMatrix = {}};
     const emptyMatrix = new Map;
+    const courseRef = {};
     await getOfferings('imports/course-offerings.csv')
         .then(offerings => {
             for (a in offerings) {
                 courseA = offerings[a][0]
-                // if (!emptyMatrix[courseA]) emptyMatrix[courseA] = {};
+                if (!courseRef[courseA]) courseRef[courseA] = [offerings[a][1],offerings[a][2]]
                 if (!emptyMatrix.get(courseA)) emptyMatrix.set(courseA, new Map);
                 for (b in offerings) {
                     courseB = offerings[b][0]
-                    // if (!emptyMatrix[courseA][courseB]) emptyMatrix[courseA][courseB] = 0;
                     if (!emptyMatrix.get(courseA).get(courseB)) emptyMatrix.get(courseA).set(courseB, 0);
                 }
             };
         }
     );
-
-    return emptyMatrix;
+    return [emptyMatrix, courseRef];
 };
 
 async function getStudents(inputFilePath, requestsByStudent) {
@@ -51,7 +49,9 @@ async function getStudents(inputFilePath, requestsByStudent) {
     return students
 };
 
-async function fillMatrix(conflictMatrix) {
+async function fillMatrix(conflictMatrixCourseRef) {
+    const conflictMatrix = conflictMatrixCourseRef[0];
+    const courseRef = conflictMatrixCourseRef[1];
     const requestsByStudent = {};
     await getStudents('imports/schedule-requests.csv', requestsByStudent)
         .then(students => {
@@ -59,7 +59,6 @@ async function fillMatrix(conflictMatrix) {
                 const courseList = requestsByStudent[students[i][0]];
                 courseList.forEach((courseA) => {
                     courseList.forEach((courseB) => {
-                        // conflictMatrix[courseA][courseB] = conflictMatrix[courseA][courseB] + 1;
                         let count = conflictMatrix.get(courseA).get(courseB) + 1
                         conflictMatrix.get(courseA).set(courseB, count);
                         })
@@ -67,10 +66,13 @@ async function fillMatrix(conflictMatrix) {
                 }
             }
         );
-    return conflictMatrix;
+    return [conflictMatrix, courseRef];
 };
 
-function populateCSV(conflictMatrix) {
+function populateCSV(conflictMatrixCourseRef) {
+    const conflictMatrix = conflictMatrixCourseRef[0];
+    const courseRef = conflictMatrixCourseRef[1];
+
     let csvText = '';
     let rows = [];
 
@@ -78,16 +80,16 @@ function populateCSV(conflictMatrix) {
 
     const firstElem = iterator.next();
     firstElem.value[1].forEach((value,key) => {
-        csvText += `,${key}`;
-        rows.push(`${key},${value}`)
+        csvText += `,${courseRef[key][1]}`;
+        rows.push(`${courseRef[key][1]},`+(firstElem.value[0] == key ? `X` : `${value}`))
     })
     csvText += '\n';
 
     let currElem = iterator.next();
     while (currElem.value != undefined) {
         let rowNum = 0;
-        currElem.value[1].forEach((value) => {
-            rows[rowNum] += `,${value}`;
+        currElem.value[1].forEach((value, key) => {
+            rows[rowNum] += currElem.value[0] == key ? `,X` : `,${value}`;
             rowNum += 1;
         })
         currElem = iterator.next();
@@ -97,9 +99,9 @@ function populateCSV(conflictMatrix) {
         csvText += `${rows[row]}\n`
     }
 
-    fs.writeFile( 'exports/conflict-matrix.csv', csvText, () => console.log('DONE') )
+    fs.writeFile( 'exports/conflict-matrix.csv', csvText, () => console.log('File Updated') )
 }
 
 createMatrix()
-    .then(emptyMatrix => fillMatrix(emptyMatrix))
-    .then(conflictMatrix => populateCSV(conflictMatrix));
+    .then(emptyMatrixCourseRef => fillMatrix(emptyMatrixCourseRef))
+    .then(conflictMatrixCourseRef => populateCSV(conflictMatrixCourseRef));
