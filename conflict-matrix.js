@@ -85,7 +85,7 @@ function populateCSV(conflictMatrixCourseRef) {
     const firstElem = iterator.next();
     firstElem.value[1].forEach((value,key) => {
         csvText += `,${courseRef[key][1]}`;
-        rows.push(`${courseRef[key][1]},`+(firstElem.value[0] == key ? `X` : `${value}`))
+        rows.push(`${courseRef[key][1]},`+(firstElem.value[0] == key ? `${value}` : `${value}`))
     })
     csvText += '\n';
 
@@ -93,7 +93,7 @@ function populateCSV(conflictMatrixCourseRef) {
     while (currElem.value != undefined) {
         let rowNum = 0;
         currElem.value[1].forEach((value, key) => {
-            rows[rowNum] += currElem.value[0] == key ? `,X` : `,${value}`;
+            rows[rowNum] += currElem.value[0] == key ? `,${value}` : `,${value}`;
             rowNum += 1;
         })
         currElem = iterator.next();
