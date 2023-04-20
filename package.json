@@ -17,6 +17,9 @@
   },
   "homepage": "https://github.com/elrjolliffe/BB-Scheduler-API#readme",
   "dependencies": {
-    "csv": "^6.2.10"
+    "@nodegui/react-nodegui": "^0.14.0",
+    "csv": "^6.2.10",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2"
   }
 }
