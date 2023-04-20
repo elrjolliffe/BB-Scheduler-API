@@ -10,7 +10,9 @@ async function getOfferings(inputFilePath) {
     for await (const row of readStream) {
       offerings.push([row[0],row[1],row[2]]);
     }
-    return offerings;
+    return offerings.sort((a,b) => {
+        return (a[2] > b[2]) ? 1 : -1
+    })
 };
 
 async function createMatrix() {
@@ -20,7 +22,9 @@ async function createMatrix() {
         .then(offerings => {
             for (a in offerings) {
                 courseA = offerings[a][0]
+                // add the course to the course reference object
                 if (!courseRef[courseA]) courseRef[courseA] = [offerings[a][1],offerings[a][2]]
+                // add the course to the empty matrix
                 if (!emptyMatrix.get(courseA)) emptyMatrix.set(courseA, new Map);
                 for (b in offerings) {
                     courseB = offerings[b][0]
