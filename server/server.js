@@ -1,32 +1,33 @@
 const express = require('express');
 const path = require('path');
-const axios = require('axios');
+const session = require('express-session');
+const bodyParser = require('body-parser');
 require('dotenv').config()
-
-const app = express();
 const PORT = process.env.PORT;
-const BB_API_KEY = process.env.BB_API_KEY;
-const BB_OAuth = process.env.BB_OAuth
+const SESSION_SECRET = process.env.SESSION_SECRET;
 
-// Course Selection Offerings = 147977
-// Course Requests = 147973
-const options = {
-    method: "GET",
-    url: "https://api.sky.blackbaud.com/school/v1/lists/advanced/147973?page=1&page_size=1000",
-    headers: {
-    "Bb-Api-Subscription-Key": BB_API_KEY,
-    "Authorization": BB_OAuth,
-    },
+const authRouter = require('./routes/authRoutes');
+const apiRouter = require('./routes/apiRoutes');
+const authController = require('./controllers/authController');
+
+const sessionConfig = {
+    resave: false,
+    saveUninitialized: true,
+    secret: SESSION_SECRET
 };
 
-axios
-    .request(options)
-    .then(function (response) {
-        console.log(response.data.results.rows[0])
-    })
-    .catch(function (error) {
-        console.error(error);
-    });
+const app = express();
+app.use(bodyParser.json());
+app.use(session(sessionConfig));
+
+app.use("/auth", authRouter);
+app.use("/api", apiRouter);
+
+app.get('/', authController.checkSession, (req, res) => {
+    console.log('look how far we made it!')
+    // res.writeHead(200, { 'Content-Type': 'text/plain' }).json({ access_token: req.session.ticket });
+    res.end('Hello World');
+})
 
 app.listen(PORT, () => {
     console.log(`Server listening on Port ${PORT}`);
