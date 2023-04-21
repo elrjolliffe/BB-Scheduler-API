@@ -41,7 +41,7 @@ apiController.getConstituentSearch = async (req, name, callback) => {
 };
 
 apiController.getOfferings = async (req, res, next) => {
-    proxy(req, 'GET', 'school/v1/lists/advanced/147977?page=1&page_size=1000', '', console.log(response.data.results.rows[0]))
+    proxy(req, 'GET', 'school/v1/lists/advanced/147977?page=1&page_size=1000', '', response => console.log('response ', response.data.results.rows[0]))
     return next();
     // const options = {
     //     method: "GET",

@@ -5,7 +5,7 @@ const AUTH_CLIENT_SECRET = process.env.AUTH_CLIENT_SECRET;
 const { AuthorizationCode } = require('simple-oauth2');
 const crypto = require('crypto');
 
-config = {
+const config = {
     client: {
         id: AUTH_CLIENT_ID,
         secret: AUTH_CLIENT_SECRET
@@ -14,23 +14,29 @@ config = {
         tokenHost: 'https://oauth2.sky.blackbaud.com',
         authorizePath: '/authorization',
         tokenPath: '/token'
+    },
+    options: {
+        authorizationMethod: 'body'
     }
 };
 
-authCodeClient = new AuthorizationCode(config);
+const authCodeClient = new AuthorizationCode(config);
 
 const saveTicket = (req, ticket) => {
+    console.log('saving ticket!')
     req.session.ticket = ticket;
     req.session.expires = (new Date().getTime() + (1000 * ticket.expires_in));
 };
 
 const validate = async (req, callback) => {
+    console.log('in validate')
     let dtCurrent;
     let dtExpires;
     let accessToken;
 
+    console.log('req.query in validate ',req.query)
     if (req.session && req.session.ticket && req.session.expires) {
-
+        console.log('in if statement')
         dtCurrent = new Date();
         dtExpires = new Date(req.session.expires);
 
@@ -43,15 +49,18 @@ const validate = async (req, callback) => {
             try {
                 accessToken = await accessToken.refresh();
             
-                saveTicket(request, accessToken.token);
+                saveTicket(req, accessToken.token);
                 callback(true);
             } catch (_) {
+                console.log('catch 1')
                 callback(false);
             }
         } else {
+            console.log('catch 2')
             callback(true);
         }
     } else {
+        console.log('catch 3')
         callback(false);
     }
 };
@@ -61,12 +70,13 @@ const authController = {};
 // authorization instructions: https://developer.blackbaud.com/skyapi/docs/authorization/auth-code-flow/confidential-application/code-samples/nodejs
 
 authController.checkSession = async (req, res, next) => {
+    console.log('in checkSession')
     validate(req, (valid) => {
         if (valid) {
             console.log("Session validated.");
             return next();
         } else {
-            console.log("Session not valid.");
+            console.log("Session not valid!");
             res.sendStatus(401);
         }
     });
@@ -80,7 +90,7 @@ authController.getLogin = async (req, res, next) => {
             .replace(/=/g, '');
     };
 
-    req.session.redirect = request.query.redirect;
+    req.session.redirect = req.query.redirect;
     req.session.state = crypto.randomBytes(48).toString('hex');
 
     const codeVerifier = base64URLEncode(crypto.randomBytes(32));
@@ -102,11 +112,20 @@ authController.getLogin = async (req, res, next) => {
 };
 
 authController.getAuthenticated = async (req, res, next) => {
+    validate(req, (success) => {
+        const json = {
+            authenticated: success
+        };
+        if (success) {
+            json.tenant_id = req.session.ticket.tenant_id;
+        }
+        res.json(json);
+    });
     return next();
 };
 
 authController.getCallback = async (req, res, next) => {
-
+    console.log('in getCallback')
     let error;
     if (req.query.error) {
         error = req.query.error;
@@ -126,23 +145,27 @@ authController.getCallback = async (req, res, next) => {
             redirect_uri: AUTH_REDIRECT_URI,
             code_verifier: req.session.code_verifier
         };
+        console.log('options in getCallback -> ',options)
         try {
+            console.log('1')
             const accessToken = await authCodeClient.getToken(options);
-
+            console.log('2')
             const redirect = req.session.redirect || '/';
-
             req.session.redirect = '';
             req.session.state = '';
             req.session.code_verifier = undefined;
-
-            saveTicket(request, accessToken.token);
+            
+            saveTicket(req, accessToken.token);
+            console.log('3')
             res.redirect(redirect);
         } catch (errorToken) {
+            console.log('error Token received')
             error = errorToken.message;
         };
     }
 
     if (error) {
+        console.log('error in getCallback -> ',error)
         res.redirect('/#?error=' + error);
     }
     return next();
