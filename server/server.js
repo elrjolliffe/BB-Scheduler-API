@@ -1,49 +1,32 @@
 const express = require('express');
 const path = require('path');
-const axios = require('axios');
-const { AuthorizationCode } = require('simple-oauth2');
+const session = require('express-session');
+const bodyParser = require('body-parser');
 require('dotenv').config()
+const PORT = process.env.PORT;
+const SESSION_SECRET = process.env.SESSION_SECRET;
+
+const authRouter = require('./routes/authRoutes');
+const apiRouter = require('./routes/apiRoutes');
+const authController = require('./controllers/authController');
+
+const sessionConfig = {
+    resave: false,
+    saveUninitialized: true,
+    secret: SESSION_SECRET
+};
 
 const app = express();
-const PORT = process.env.PORT;
-const AUTH_SUBSCRIPTION_KEY = process.env.AUTH_SUBSCRIPTION_KEY;
-const BB_OAuth = process.env.BB_OAuth
+app.use(bodyParser.json());
+app.use(session(sessionConfig));
 
-// authorization instructions: https://developer.blackbaud.com/skyapi/docs/authorization/auth-code-flow/confidential-application/code-samples/nodejs
+app.use("/auth", authRouter);
+app.use("/api", apiRouter);
 
-config = {
-    client: {
-        id: process.env.AUTH_CLIENT_ID,
-        secret: process.env.AUTH_CLIENT_SECRET
-    },
-    auth: {
-        tokenHost: 'https://oauth2.sky.blackbaud.com',
-        authorizePath: '/authorization',
-        tokenPath: '/token'
-    }
-};
-
-authCodeClient = new AuthorizationCode(config);
-
-// Course Selection Offerings = 147977
-// Course Requests = 147973
-const options = {
-    method: "GET",
-    url: "https://api.sky.blackbaud.com/school/v1/lists/advanced/147973?page=1&page_size=1000",
-    headers: {
-        "Bb-Api-Subscription-Key": AUTH_SUBSCRIPTION_KEY,
-        "Authorization": BB_OAuth,
-    },
-};
-
-axios
-    .request(options)
-    .then(function (response) {
-        console.log(response.data.results.rows[0])
-    })
-    .catch(function (error) {
-        console.error(error);
-    });
+app.get('/', authController.checkSession, (req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' }).json({ access_token: req.session.ticket });
+    res.end('Hello World');
+})
 
 app.listen(PORT, () => {
     console.log(`Server listening on Port ${PORT}`);
