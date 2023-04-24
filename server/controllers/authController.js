@@ -36,12 +36,10 @@ const validate = async (req, callback) => {
 
     console.log('req.query in validate ',req.query)
     if (req.session && req.session.ticket && req.session.expires) {
-        console.log('in if statement')
         dtCurrent = new Date();
         dtExpires = new Date(req.session.expires);
 
         if (dtCurrent >= dtExpires) {
-            console.log('Token expired');
 
             // Check if the token is expired. If expired it is refreshed.
             accessToken = authCodeClient.createToken(req.session.ticket);
@@ -52,15 +50,12 @@ const validate = async (req, callback) => {
                 saveTicket(req, accessToken.token);
                 callback(true);
             } catch (_) {
-                console.log('catch 1')
                 callback(false);
             }
         } else {
-            console.log('catch 2')
             callback(true);
         }
     } else {
-        console.log('catch 3')
         callback(false);
     }
 };
@@ -145,27 +140,21 @@ authController.getCallback = async (req, res, next) => {
             redirect_uri: AUTH_REDIRECT_URI,
             code_verifier: req.session.code_verifier
         };
-        console.log('options in getCallback -> ',options)
         try {
-            console.log('1')
             const accessToken = await authCodeClient.getToken(options);
-            console.log('2')
             const redirect = req.session.redirect || '/';
             req.session.redirect = '';
             req.session.state = '';
             req.session.code_verifier = undefined;
             
             saveTicket(req, accessToken.token);
-            console.log('3')
             res.redirect(redirect);
         } catch (errorToken) {
-            console.log('error Token received')
             error = errorToken.message;
         };
     }
 
     if (error) {
-        console.log('error in getCallback -> ',error)
         res.redirect('/#?error=' + error);
     }
     return next();
