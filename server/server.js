@@ -24,7 +24,6 @@ app.use("/auth", authRouter);
 app.use("/api", apiRouter);
 
 app.get('/', authController.checkSession, (req, res) => {
-    console.log('look how far we made it!')
     // res.writeHead(200, { 'Content-Type': 'text/plain' }).json({ access_token: req.session.ticket });
     res.end('Hello World');
 })

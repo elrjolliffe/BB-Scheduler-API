@@ -41,8 +41,12 @@ apiController.getConstituentSearch = async (req, name, callback) => {
 };
 
 apiController.getOfferings = async (req, res, next) => {
-    proxy(req, 'GET', 'school/v1/lists/advanced/147977?page=1&page_size=1000', '', response => console.log('response ', response.data.results.rows[0]))
-    return next();
+    proxy(req, 'GET', 'school/v1/lists/advanced/147977?page=1&page_size=1000', '', response => {
+            res.locals.offerings = response.data.results.rows;
+            console.log('res.locals.offerings -> ',res.locals.offerings);
+            return next();
+        }
+    )
     // const options = {
     //     method: "GET",
     //     url: "https://api.sky.blackbaud.com/school/v1/lists/advanced/147977?page=1&page_size=1000",
@@ -63,7 +67,12 @@ apiController.getOfferings = async (req, res, next) => {
 };
 
 apiController.getRequests = async (req, res, next) => {
-
+    proxy(req, 'GET', 'school/v1/lists/advanced/147973?page=1&page_size=1000', '', response => {
+            res.locals.requests = response.data.results.rows;
+            console.log('res.locals.requests -> ',res.locals.requests);
+            return next();
+        }
+    )
 };
 
 module.exports = apiController;

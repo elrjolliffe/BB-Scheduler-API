@@ -8,14 +8,14 @@ router.get('/constituents/:constituentId', authController.checkSession, apiContr
     return res.status(200);
 });
 
-router.get('/offerings', apiController.getOfferings, (req, res) => {
+router.get('/offerings', authController.checkSession, apiController.getOfferings, (req, res) => {
     console.log('/api/offerings/apiController.getOfferings complete');
-    return res.status(200);
+    return res.status(200).json({ offerings: res.locals.offerings });
 });
 
-router.get('/requests', apiController.getRequests, (req, res) => {
+router.get('/requests', authController.checkSession, apiController.getRequests, (req, res) => {
     console.log('/api/offerings/apiController.getRequests complete');
-    return res.status(200);
+    return res.status(200).json({ requests: res.locals.requests });
 });
 
 module.exports = router;
